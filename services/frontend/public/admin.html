@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Workspace — Upcycle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0A0C10;
+      --glass-bg: rgba(20, 24, 30, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --accent: #00FF88;
+      --accent-glow: rgba(0, 255, 136, 0.4);
+      --text-main: #FFFFFF;
+      --text-muted: #8E9BAE;
+      --danger: #FF3366;
+      --danger-bg: rgba(255, 51, 102, 0.15);
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body { 
+      display: flex; 
+      min-height: 100vh; 
+      font-family: 'Outfit', sans-serif; 
+      color: var(--text-main); 
+      background: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(0, 255, 136, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(0, 200, 255, 0.05) 0%, transparent 50%);
+      overflow-x: hidden;
+    }
+
+    /* GLASSMORPHISM UTILITIES */
+    .glass-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 260px;
+      margin: 20px;
+      padding: 30px 0; 
+      display: flex; 
+      flex-direction: column;
+      position: fixed;
+      height: calc(100vh - 40px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+    
+    .sidebar-logo { 
+      font-size: 24px; 
+      font-weight: 700; 
+      padding: 0 30px 30px; 
+      border-bottom: 1px solid var(--glass-border); 
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      letter-spacing: 0.5px;
+    }
+    
+    .sidebar-logo span { 
+      color: var(--accent); 
+      text-shadow: 0 0 15px var(--accent-glow);
+    }
+    
+    .nav { margin-top: 24px; flex: 1; padding: 0 15px; }
+    
+    .nav-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 20px; 
+      color: var(--text-muted); 
+      font-size: 15px;
+      font-weight: 500;
+      border-radius: 12px;
+      cursor: pointer; 
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 8px;
+    }
+    
+    .nav-item:hover { 
+      color: var(--text-main); 
+      background: rgba(255,255,255,0.03); 
+      transform: translateX(4px);
+    }
+    
+    .nav-item.active { 
+      color: var(--bg-dark); 
+      background: var(--accent); 
+      box-shadow: 0 4px 15px var(--accent-glow);
+      font-weight: 600;
+    }
+    
+    .nav-item .icon { font-size: 18px; }
+    
+    .sidebar-footer { padding: 20px 15px 0; border-top: 1px solid var(--glass-border); }
+    
+    .logout-btn {
+      width: 100%; padding: 14px; 
+      background: rgba(255,255,255,0.03); 
+      border: 1px solid var(--glass-border);
+      border-radius: 12px; 
+      color: var(--text-muted); 
+      cursor: pointer; 
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Outfit', sans-serif;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .logout-btn:hover { 
+      background: var(--danger-bg); 
+      color: var(--danger); 
+      border-color: rgba(255, 51, 102, 0.3);
+    }
+
+    /* MAIN CONTENT */
+    .main { 
+      margin-left: 300px; 
+      flex: 1; 
+      padding: 40px 40px 40px 0; 
+      min-height: 100vh;
+    }
+    
+    .page { 
+      display: none; 
+      animation: fadeIn 0.4s ease-out forwards;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    
+    .page.active { display: block; }
+    
+    @keyframes fadeIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .page-title { 
+      font-size: 32px; 
+      font-weight: 700; 
+      margin-bottom: 30px; 
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* STATS GRID */
+    .stats { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+      gap: 24px; 
+      margin-bottom: 40px; 
+    }
+    
+    .stat-card { 
+      padding: 28px; 
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 4px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0.5;
+    }
+    
+    .stat-label { 
+      font-size: 13px; 
+      color: var(--text-muted); 
+      margin-bottom: 12px; 
+      font-weight: 500;
+      letter-spacing: 1px; 
+      text-transform: uppercase; 
+    }
+    
+    .stat-value { 
+      font-size: 42px; 
+      font-weight: 700; 
+      line-height: 1;
+    }
+    
+    .stat-value.green { color: var(--accent); text-shadow: 0 0 20px var(--accent-glow); }
+    .stat-value.warn { color: #FFB020; text-shadow: 0 0 20px rgba(255, 176, 32, 0.3); }
+
+    /* MODERN TABLES */
+    .table-container {
+      margin-top: 24px;
+      overflow-x: auto;
+    }
+    
+    .table-header { 
+      padding: 24px 30px; 
+      border-bottom: 1px solid var(--glass-border); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+    }
+    
+    .table-header h3 { 
+      font-size: 18px; 
+      font-weight: 600; 
+      letter-spacing: -0.3px;
+    }
+    
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+    }
+    
+    th { 
+      padding: 18px 30px; 
+      text-align: left; 
+      font-size: 12px; 
+      color: var(--text-muted); 
+      text-transform: uppercase; 
+      letter-spacing: 1px; 
+      font-weight: 600;
+      border-bottom: 1px solid var(--glass-border); 
+      background: rgba(0,0,0,0.2);
+    }
+    
+    td { 
+      padding: 18px 30px; 
+      font-size: 14px;
+      font-weight: 400;
+      border-bottom: 1px solid rgba(255,255,255,0.03); 
+      transition: background 0.2s;
+    }
+    
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* BADGES */
+    .badge {
+      display: inline-flex; 
+      align-items: center;
+      padding: 6px 12px; 
+      border-radius: 30px; 
+      font-size: 12px; 
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    
+    .badge.pending { background: rgba(255, 176, 32, 0.15); color: #FFB020; border: 1px solid rgba(255, 176, 32, 0.3); }
+    .badge.active, .badge.approved { background: rgba(0, 255, 136, 0.15); color: var(--accent); border: 1px solid rgba(0, 255, 136, 0.3); }
+    .badge.rejected { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(255, 51, 102, 0.3); }
+    .badge.admin { background: rgba(155, 81, 224, 0.15); color: #B175FF; border: 1px solid rgba(155, 81, 224, 0.3); }
+    .badge.penjual { background: rgba(45, 156, 219, 0.15); color: #56CCF2; border: 1px solid rgba(45, 156, 219, 0.3); }
+    .badge.pembeli { background: rgba(255, 255, 255, 0.05); color: #DDD; border: 1px solid rgba(255, 255, 255, 0.1); }
+
+    /* BUTTONS */
+    .btn-action {
+      padding: 8px 16px; 
+      border-radius: 8px; 
+      font-size: 13px; 
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer; 
+      border: 1px solid transparent; 
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .btn-approve { 
+      background: rgba(0, 255, 136, 0.1); 
+      color: var(--accent); 
+      border-color: rgba(0, 255, 136, 0.2);
+    }
+    
+    .btn-approve:hover { 
+      background: var(--accent); 
+      color: var(--bg-dark); 
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+    
+    .btn-reject { 
+      background: var(--danger-bg); 
+      color: var(--danger); 
+      border-color: rgba(255, 51, 102, 0.2);
+    }
+    
+    .btn-reject:hover { 
+      background: var(--danger); 
+      color: #fff; 
+      box-shadow: 0 0 15px rgba(255, 51, 102, 0.4);
+    }
+
+    /* SELECT INPUTS */
+    select.modern-select {
+      background: rgba(0,0,0,0.3);
+      color: var(--text-main);
+      border: 1px solid var(--glass-border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    select.modern-select:focus {
+      border-color: var(--accent);
+    }
+    
+    select.modern-select option {
+      background: var(--bg-dark);
+      color: var(--text-main);
+    }
+
+    /* STATES */
+    .empty { 
+      text-align: center; 
+      padding: 60px 20px; 
+      color: var(--text-muted); 
+      font-size: 15px; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .empty .icon { font-size: 40px; opacity: 0.5; }
+    
+    .loading { 
+      text-align: center; 
+      padding: 60px; 
+      color: var(--accent); 
+      font-weight: 500;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      50% { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+    
+    /* CUSTOM SCROLLBAR */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar glass-panel">
+    <div class="sidebar-logo">♻ <span>Upcycle</span></div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="showPage('verifikasi')" data-page="verifikasi">
+        <span class="icon">✨</span> Verifikasi Produk
+      </div>
+      <div class="nav-item" onclick="showPage('dashboard')" data-page="dashboard">
+        <span class="icon">📊</span> Analytics
+      </div>
+      <div class="nav-item" onclick="showPage('produk')" data-page="produk">
+        <span class="icon">📦</span> Katalog Global
+      </div>
+      <div class="nav-item" onclick="showPage('transaksi')" data-page="transaksi">
+        <span class="icon">🧾</span> Transaksi
+      </div>
+      <div class="nav-item" onclick="showPage('users')" data-page="users">
+        <span class="icon">👥</span> Pengguna
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()">
+        <span class="icon">🚪</span> Keluar
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- VERIFIKASI (MADE DEFAULT/FIRST) -->
+    <div class="page active" id="page-verifikasi">
+      <div class="page-title"><span style="color:var(--accent)">✨</span> Verifikasi Produk Upcycle</div>
+      <div class="glass-panel">
+        <div class="table-header">
+          <h3>Antrean Persetujuan</h3>
+        </div>
+        <div class="table-container" id="verifikasi-list">
+          <div class="loading">Menyinkronkan data...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page" id="page-dashboard">
+      <div class="page-title"><span style="color:var(--accent)">📊</span> Analytics Overview</div>
+      <div class="stats">
+        <div class="stat-card glass-panel">
+          <div class="stat-label">Menunggu Verifikasi</div>
+          <div class="stat-value warn" id="stat-pending">—</div>
+        </div>
+        <div class="stat-card glass-panel">
+          <div class="stat-label">Produk Live</div>
+          <div class="stat-value green" id="stat-active">—</div>
+        </div>
+        <div class="stat-card glass-panel">
+          <div class="stat-label">Total Transaksi</div>
+          <div class="stat-value" id="stat-trx">—</div>
+        </div>
+        <div class="stat-card glass-panel">
+          <div class="stat-label">Pengguna Terdaftar</div>
+          <div class="stat-value" id="stat-users">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEMUA PRODUK -->
+    <div class="page" id="page-produk">
+      <div class="page-title"><span style="color:var(--accent)">📦</span> Katalog Global</div>
+      <div class="glass-panel">
+        <div class="table-header">
+          <h3>Inventaris Keseluruhan</h3>
+        </div>
+        <div class="table-container" id="produk-list">
+          <div class="loading">Menyinkronkan data...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSAKSI -->
+    <div class="page" id="page-transaksi">
+      <div class="page-title"><span style="color:var(--accent)">🧾</span> Log Transaksi</div>
+      <div class="glass-panel">
+        <div class="table-header">
+          <h3>Riwayat Pemesanan</h3>
+        </div>
+        <div class="table-container" id="transaksi-list">
+          <div class="loading">Menyinkronkan data...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="page" id="page-users">
+      <div class="page-title"><span style="color:var(--accent)">👥</span> Manajemen Pengguna</div>
+      <div class="glass-panel">
+        <div class="table-header">
+          <h3>Daftar Entitas</h3>
+        </div>
+        <div class="table-container" id="users-list">
+          <div class="loading">Menyinkronkan data...</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/config.js"></script>
+  <script>
+    // Auth guard
+    if (!localStorage.getItem('token') || localStorage.getItem('role') !== 'admin') {
+      window.location.href = '/login.html';
+    }
+
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(`page-${name}`).classList.add('active');
+      document.querySelector(`[data-page="${name}"]`).classList.add('active');
+      loadPage(name);
+    }
+
+    function logout() {
+      api.post(`${CONFIG.AUTH_URL}/logout`, { refresh_token: localStorage.getItem('refresh_token') });
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    async function loadPage(name) {
+      if (name === 'dashboard') loadDashboard();
+      else if (name === 'verifikasi') loadVerifikasi();
+      else if (name === 'produk') loadProduk();
+      else if (name === 'transaksi') loadTransaksi();
+      else if (name === 'users') loadUsers();
+    }
+
+    async function loadDashboard() {
+      try {
+        const [vRes, uRes, tRes] = await Promise.all([
+          api.get(`${CONFIG.PRODUCT_URL}/verifikasi`),
+          api.get(`${CONFIG.AUTH_URL}/users`),
+          api.get(`${CONFIG.PRODUCT_URL}/transaksi`)
+        ]);
+        const [pending, users, trx] = await Promise.all([vRes.json(), uRes.json(), tRes.json()]);
+        document.getElementById('stat-pending').textContent = pending.length ?? '—';
+        document.getElementById('stat-users').textContent = users.length ?? '—';
+        document.getElementById('stat-trx').textContent = trx.length ?? '—';
+        
+        // Count active products
+        const pRes = await api.get(`${CONFIG.PRODUCT_URL}/products`);
+        const pData = await pRes.json();
+        const activeCount = (pData.data || []).filter(p => p.status === 'active').length;
+        document.getElementById('stat-active').textContent = activeCount || '0';
+      } catch {}
+    }
+
+    async function loadVerifikasi() {
+      const el = document.getElementById('verifikasi-list');
+      try {
+        const res = await api.get(`${CONFIG.PRODUCT_URL}/verifikasi`);
+        const data = await res.json();
+        if (!data.length) { 
+          el.innerHTML = `
+            <div class="empty">
+              <span class="icon">✨</span>
+              <span>Antrean kosong. Semua produk sudah diverifikasi.</span>
+            </div>`; 
+          return; 
+        }
+        el.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>Nama Produk</th><th>Penjual ID</th><th>Kategori</th><th>Harga</th><th>Aksi Keputusan</th></tr></thead>
+          <tbody>${data.map(p => `
+            <tr>
+              <td>#${p.id}</td>
+              <td style="font-weight:500;color:#fff">${p.nama}</td>
+              <td>UID-${p.penjual_id}</td>
+              <td>${p.kategori_nama || 'Umum'}</td>
+              <td style="color:var(--accent)">Rp ${Number(p.harga).toLocaleString('id-ID')}</td>
+              <td>
+                <button class="btn-action btn-approve" onclick="verifikasi(${p.id},'approved')">✓ Izinkan</button>
+                <button class="btn-action btn-reject" onclick="verifikasi(${p.id},'rejected')" style="margin-left:8px">✗ Tolak</button>
+              </td>
+            </tr>`).join('')}
+          </tbody></table>`;
+      } catch { el.innerHTML = '<div class="empty" style="color:var(--danger)">Gagal memuat antrean</div>'; }
+    }
+
+    async function verifikasi(id, status) {
+      const catatan = status === 'rejected' ? prompt('Masukkan alasan penolakan (opsional):') : '';
+      await api.post(`${CONFIG.PRODUCT_URL}/verifikasi/${id}`, { status, catatan });
+      loadVerifikasi(); // Reload current view
+      loadDashboard(); // Update stats silently
+    }
+
+    async function loadProduk() {
+      const el = document.getElementById('produk-list');
+      try {
+        const res = await api.get(`${CONFIG.PRODUCT_URL}/products`);
+        const data = await res.json();
+        const rows = data.data || [];
+        if (!rows.length) { el.innerHTML = '<div class="empty">Katalog masih kosong</div>'; return; }
+        el.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>Produk</th><th>Kategori</th><th>Harga</th><th>Stok</th><th>Status Visibilitas</th><th>Aksi</th></tr></thead>
+          <tbody>${rows.map(p => `
+            <tr>
+              <td>#${p.id}</td>
+              <td style="font-weight:500;color:#fff">${p.nama}</td>
+              <td>${p.kategori_nama || '-'}</td>
+              <td>Rp ${Number(p.harga).toLocaleString('id-ID')}</td>
+              <td>${p.stok} unit</td>
+              <td><span class="badge ${p.status}">${p.status === 'active' ? 'Live' : p.status}</span></td>
+              <td>
+                <button class="btn-action btn-reject" onclick="hapusProduk(${p.id})">Hapus</button>
+              </td>
+            </tr>`).join('')}
+          </tbody></table>`;
+      } catch { el.innerHTML = '<div class="empty" style="color:var(--danger)">Gagal memuat katalog</div>'; }
+    }
+
+    async function hapusProduk(id) {
+      if (!confirm('Yakin ingin menghapus produk (iklan) ini secara permanen?')) return;
+      try {
+        const res = await api.delete(`${CONFIG.PRODUCT_URL}/products/${id}`);
+        if(res.ok) {
+          loadProduk();
+          loadDashboard();
+        } else {
+          const data = await res.json();
+          alert(data.message || 'Gagal menghapus produk');
+        }
+      } catch (e) {
+        alert('Terjadi kesalahan saat menghapus produk');
+      }
+    }
+
+    async function loadTransaksi() {
+      const el = document.getElementById('transaksi-list');
+      try {
+        const res = await api.get(`${CONFIG.PRODUCT_URL}/transaksi`);
+        const data = await res.json();
+        if (!data.length) { el.innerHTML = '<div class="empty">Belum ada transaksi terekam</div>'; return; }
+        el.innerHTML = `<table>
+          <thead><tr><th>ID Order</th><th>Pembeli</th><th>Nilai Transaksi</th><th>Tanggal</th><th>Status Saat Ini</th></tr></thead>
+          <tbody>${data.map(t => `
+            <tr>
+              <td>#${t.id}</td>
+              <td>UID-${t.pembeli_id}</td>
+              <td style="font-weight:500">Rp ${Number(t.total_harga).toLocaleString('id-ID')}</td>
+              <td>${new Date(t.created_at).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}</td>
+              <td>
+                <select class="modern-select" onchange="updateTrxStatus(${t.id}, this.value)">
+                  ${['pending','paid','processing','shipped','delivered','cancelled'].map(s =>
+                    `<option value="${s}" ${s===t.status?'selected':''}>${s.toUpperCase()}</option>`).join('')}
+                </select>
+              </td>
+            </tr>`).join('')}
+          </tbody></table>`;
+      } catch { el.innerHTML = '<div class="empty" style="color:var(--danger)">Gagal memuat transaksi</div>'; }
+    }
+
+    async function updateTrxStatus(id, status) {
+      await api.put(`${CONFIG.PRODUCT_URL}/transaksi/${id}/status`, { status });
+    }
+
+    async function loadUsers() {
+      const el = document.getElementById('users-list');
+      try {
+        const res = await api.get(`${CONFIG.AUTH_URL}/users`);
+        const data = await res.json();
+        el.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>Identitas</th><th>Kontak</th><th>Tipe Entitas</th><th>Akses Platform</th><th>Manajemen</th></tr></thead>
+          <tbody>${data.map(u => `
+            <tr>
+              <td>#${u.id}</td>
+              <td style="font-weight:500;color:#fff">${u.name}</td>
+              <td>${u.email}</td>
+              <td><span class="badge ${u.role}">${u.role}</span></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="width:8px;height:8px;border-radius:50%;background:${u.is_active ? 'var(--accent)' : 'var(--danger)'};box-shadow:0 0 8px ${u.is_active ? 'var(--accent)' : 'var(--danger)'}"></div>
+                  ${u.is_active ? 'Diizinkan' : 'Diblokir'}
+                </div>
+              </td>
+              <td>
+                <button class="btn-action ${u.is_active ? 'btn-reject' : 'btn-approve'}"
+                  onclick="toggleUser(${u.id}, ${u.is_active ? 0 : 1})">
+                  ${u.is_active ? 'Cabut Akses' : 'Pulihkan'}
+                </button>
+              </td>
+            </tr>`).join('')}
+          </tbody></table>`;
+      } catch { el.innerHTML = '<div class="empty" style="color:var(--danger)">Gagal memuat pengguna</div>'; }
+    }
+
+    async function toggleUser(id, status) {
+      await api.put(`${CONFIG.AUTH_URL}/users/${id}/status`, { is_active: status });
+      loadUsers();
+    }
+
+    // Initialize first page
+    loadVerifikasi();
+  </script>
+</body>
+</html>

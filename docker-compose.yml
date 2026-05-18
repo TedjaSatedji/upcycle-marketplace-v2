@@ -1,0 +1,41 @@
+version: '3.8'
+
+# MySQL jalan langsung di GCE VM (bukan container)
+# Jalankan setup-mysql.sh dulu sebelum docker-compose up
+
+services:
+  auth-service:
+    build: ./services/auth-service
+    container_name: upcycle-auth
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DB_HOST: host.docker.internal        # MySQL di VM yang sama atau Windows Host
+      DB_USER: upcycle_user
+      DB_PASS: upcycle_pass      # ganti sesuai setup-mysql.sh
+      DB_NAME: upcycle_auth
+      JWT_SECRET: dev_secret_ganti_di_production
+
+  product-service:
+    build: ./services/product-service
+    container_name: upcycle-product
+    restart: always
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DB_HOST: host.docker.internal
+      DB_USER: upcycle_user
+      DB_PASS: upcycle_pass
+      DB_NAME: upcycle_products
+      JWT_SECRET: dev_secret_ganti_di_production
+      GCP_PROJECT_ID: upcycle-marketplace-66a5a
+
+  frontend:
+    build: ./services/frontend
+    container_name: upcycle-frontend
+    restart: always
+    ports:
+      - "8080:80"

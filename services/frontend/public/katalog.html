@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Katalog — Upcycle Market</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F5F0E8; --card: #FDFAF5; --ink: #1C1B17; --muted: #7A7567;
+      --accent: #4A7C59; --accent-light: #D4EAD8; --border: #E2DAC8; --warm: #C8A96E;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--ink); min-height: 100vh; }
+
+    nav {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 16px 40px; display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .nav-logo { font-family: 'Fraunces', serif; font-size: 20px; color: var(--accent); }
+    .nav-right { display: flex; gap: 12px; align-items: center; }
+    .btn-nav {
+      padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      cursor: pointer; border: none; transition: all 0.15s;
+    }
+    .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--ink); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #3d6b4a; }
+
+    .hero {
+      padding: 64px 40px 48px;
+      background: linear-gradient(135deg, #E8F5EC 0%, var(--bg) 60%);
+      text-align: center;
+    }
+    .hero-tag { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+    .hero-title { font-family: 'Fraunces', serif; font-size: 44px; line-height: 1.15; margin-bottom: 14px; color: var(--ink); }
+    .hero-title em { font-style: italic; color: var(--accent); }
+    .hero-sub { color: var(--muted); font-size: 16px; max-width: 480px; margin: 0 auto 28px; }
+
+    .search-bar {
+      display: flex; max-width: 480px; margin: 0 auto;
+      background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden;
+    }
+    .search-bar input {
+      flex: 1; padding: 12px 16px; border: none; background: transparent;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; color: var(--ink);
+    }
+    .search-bar button {
+      padding: 12px 20px; background: var(--accent); border: none; color: #fff;
+      cursor: pointer; font-size: 14px; transition: background 0.15s;
+    }
+    .search-bar button:hover { background: #3d6b4a; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+    .filter-row { display: flex; gap: 10px; padding: 28px 0 20px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 7px 16px; border-radius: 20px; font-size: 13px;
+      border: 1.5px solid var(--border); background: var(--card); cursor: pointer;
+      transition: all 0.15s; color: var(--ink);
+    }
+    .filter-btn:hover, .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; padding-bottom: 48px; }
+
+    .produk-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      overflow: hidden; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .produk-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(28,27,23,0.1); }
+    .produk-img {
+      width: 100%; height: 200px; background: var(--accent-light);
+      display: flex; align-items: center; justify-content: center; font-size: 48px;
+    }
+    .produk-body { padding: 16px; }
+    .produk-kategori { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .produk-nama { font-weight: 600; font-size: 15px; margin-bottom: 8px; line-height: 1.35; }
+    .produk-harga { font-family: 'Fraunces', serif; font-size: 18px; color: var(--ink); }
+    .produk-stok { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .empty { text-align: center; padding: 60px; color: var(--muted); grid-column: 1/-1; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-logo">♻ Upcycle</div>
+    <div class="nav-right">
+      <span id="nav-user" style="font-size:13px;color:var(--muted)"></span>
+      <button class="btn-nav btn-outline" onclick="window.location.href='/riwayat.html'">Pesanan Saya</button>
+      <button class="btn-nav btn-primary" onclick="window.location.href='/jual.html'">+ Jual Produk</button>
+      <button class="btn-nav btn-outline" onclick="logout()">Keluar</button>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-tag">♻ Marketplace Upcycling</div>
+    <h1 class="hero-title">Temukan produk <em>daur ulang</em><br>terbaik pilihan kurator</h1>
+    <p class="hero-sub">Setiap pembelian mendukung ekonomi sirkular dan kreator lokal yang peduli lingkungan.</p>
+    <div class="search-bar">
+      <input type="text" id="search" placeholder="Cari produk upcycling..." />
+      <button onclick="loadProduk()">Cari</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="filter-row" id="filter-row">
+      <button class="filter-btn active" onclick="setFilter(null, this)">Semua</button>
+    </div>
+    <div class="grid" id="produk-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Memuat produk...</div>
+    </div>
+  </div>
+
+  <script src="/config.js"></script>
+  <script>
+    if (!localStorage.getItem('token')) window.location.href = '/login.html';
+
+    let activeKategori = null;
+
+    function logout() {
+      api.post(`${CONFIG.AUTH_URL}/logout`, { refresh_token: localStorage.getItem('refresh_token') });
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    async function loadKategori() {
+      try {
+        const res = await api.get(`${CONFIG.PRODUCT_URL}/kategori`);
+        const data = await res.json();
+        const row = document.getElementById('filter-row');
+        data.forEach(k => {
+          const btn = document.createElement('button');
+          btn.className = 'filter-btn';
+          btn.textContent = k.nama;
+          btn.onclick = () => setFilter(k.slug, btn);
+          row.appendChild(btn);
+        });
+      } catch {}
+    }
+
+    function setFilter(slug, btn) {
+      activeKategori = slug;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadProduk();
+    }
+
+    async function loadProduk() {
+      const grid = document.getElementById('produk-grid');
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Memuat...</div>';
+      try {
+        const search = document.getElementById('search').value;
+        let url = `${CONFIG.PRODUCT_URL}/products?limit=20`;
+        if (activeKategori) url += `&kategori=${activeKategori}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        const res = await api.get(url);
+        const data = await res.json();
+        const produk = data.data || [];
+
+        if (!produk.length) {
+          grid.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div>Produk tidak ditemukan</div>`;
+          return;
+        }
+
+        const ICONS = { fesyen: '👗', furnitur: '🪑', aksesori: '💍', dekorasi: '🏮', elektronik: '⚡' };
+        grid.innerHTML = produk.map(p => `
+          <div class="produk-card" onclick="window.location.href='/produk.html?id=${p.id}'">
+            <div class="produk-img">
+              ${p.fotos?.length ? `<img src="${p.fotos[0]}" style="width:100%;height:100%;object-fit:cover"/>` 
+                : (ICONS[p.kategori_nama?.toLowerCase()] || '♻️')}
+            </div>
+            <div class="produk-body">
+              <div class="produk-kategori">${p.kategori_nama || 'Upcycled'}</div>
+              <div class="produk-nama">${p.nama}</div>
+              <div class="produk-harga">Rp ${Number(p.harga).toLocaleString('id-ID')}</div>
+              <div class="produk-stok">${p.stok > 0 ? `${p.stok} tersisa` : '⚠ Habis'}</div>
+            </div>
+          </div>`).join('');
+      } catch { grid.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>Gagal memuat produk</div>'; }
+    }
+
+    document.getElementById('search').addEventListener('keydown', e => { if (e.key === 'Enter') loadProduk(); });
+    loadKategori();
+    loadProduk();
+  </script>
+</body>
+</html>
