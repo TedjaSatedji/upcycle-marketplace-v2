@@ -1,6 +1,6 @@
 const CONFIG = {
-  AUTH_URL: '/api/auth',
-  PRODUCT_URL: '/api/products',
+  AUTH_URL: 'https://auth-service-420166052416.asia-southeast2.run.app/auth',
+  PRODUCT_URL: 'https://product-service-420166052416.asia-southeast2.run.app',
 };
 
 const api = {
