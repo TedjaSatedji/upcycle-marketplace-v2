@@ -165,13 +165,18 @@ router.get('/:id', async (req, res) => {
 
     // Foto + review dari Firestore
     if (firestore) {
-      const [mediaDoc, reviewsSnap] = await Promise.all([
-        firestore.collection('produk_media').doc(String(produk.id)).get(),
-        firestore.collection('reviews').where('produk_id', '==', String(produk.id)).limit(10).get()
-      ]);
+      try {
+        const [mediaDoc, reviewsSnap] = await Promise.all([
+          firestore.collection('produk_media').doc(String(produk.id)).get(),
+          firestore.collection('reviews').where('produk_id', '==', String(produk.id)).limit(10).get()
+        ]);
 
-      produk.fotos = mediaDoc.exists ? mediaDoc.data().fotos : [];
-      produk.reviews = reviewsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        produk.fotos = mediaDoc.exists ? mediaDoc.data().fotos : [];
+        produk.reviews = reviewsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch {
+        produk.fotos = [];
+        produk.reviews = [];
+      }
     } else {
       produk.fotos = [];
       produk.reviews = [];

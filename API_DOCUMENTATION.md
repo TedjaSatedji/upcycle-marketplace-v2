@@ -23,6 +23,21 @@ Authorization: Bearer <access_token>
 
 Token dari login berlaku sekitar 1 jam. Simpan `token` dan `refresh_token` di secure storage mobile.
 
+## Mobile Product Upload Flow
+
+Untuk membuat produk dengan foto, mobile app memakai urutan ini:
+
+1. Login dan simpan `token`.
+2. Jika user belum menjadi penjual, panggil `PUT /auth/profile` dengan `nama_toko`.
+3. Jika response mengandung `token` baru, ganti token lama dengan token baru tersebut.
+4. User memilih foto dari gallery/camera.
+5. Upload foto ke `POST /upload` sebagai `multipart/form-data` dengan field file bernama `photos`.
+6. Backend mengembalikan array URL foto.
+7. Kirim URL foto tersebut ke `POST /products` pada field `fotos`.
+8. Produk baru masuk status `pending` dan baru muncul di catalog publik setelah admin approve.
+
+Mobile app tidak perlu Firebase service account credentials. Semua akses Firebase/GCS dilakukan oleh backend.
+
 ## Common Errors
 
 ```json

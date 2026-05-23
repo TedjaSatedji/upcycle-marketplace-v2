@@ -41,7 +41,7 @@ router.post('/:produk_id', verifyAdmin, async (req, res) => {
         catatan: catatan || '',
         read: false,
         created_at: new Date().toISOString()
-      });
+      }).catch(() => {});
     }
 
     res.json({ message: `Produk berhasil ${status === 'approved' ? 'disetujui' : 'ditolak'}` });

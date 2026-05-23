@@ -4,18 +4,16 @@ let db;
 
 try {
   if (!admin.apps.length) {
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-        projectId: process.env.GCP_PROJECT_ID,
-      });
-    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
       admin.initializeApp({
         credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
         projectId: process.env.GCP_PROJECT_ID,
       });
     } else {
-      console.warn('Firestore disabled: FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS is required');
+      admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        projectId: process.env.GCP_PROJECT_ID,
+      });
     }
   }
 

@@ -146,7 +146,7 @@ router.put('/:id/status', verifyAdmin, async (req, res) => {
         transaksi_id: req.params.id,
         read: false,
         created_at: new Date().toISOString()
-      });
+      }).catch(() => {});
     }
 
     res.json({ message: 'Status transaksi diupdate' });

@@ -8,11 +8,16 @@ router.get('/:produk_id', async (req, res) => {
   try {
     if (!firestore) return res.json([]);
 
-    const snap = await firestore.collection('reviews')
-      .where('produk_id', '==', String(req.params.produk_id))
-      .orderBy('created_at', 'desc')
-      .limit(20)
-      .get();
+    let snap;
+    try {
+      snap = await firestore.collection('reviews')
+        .where('produk_id', '==', String(req.params.produk_id))
+        .orderBy('created_at', 'desc')
+        .limit(20)
+        .get();
+    } catch {
+      return res.json([]);
+    }
 
     res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   } catch (e) {
@@ -38,22 +43,31 @@ router.post('/:produk_id', verifyToken, async (req, res) => {
       return res.status(403).json({ message: 'Hanya pembeli produk yang bisa memberi review' });
     }
 
-    const existingSnap = await firestore.collection('reviews')
-      .where('produk_id', '==', String(req.params.produk_id))
-      .where('pembeli_id', '==', String(req.user.id))
-      .limit(1)
-      .get();
+    let existingSnap;
+    try {
+      existingSnap = await firestore.collection('reviews')
+        .where('produk_id', '==', String(req.params.produk_id))
+        .where('pembeli_id', '==', String(req.user.id))
+        .limit(1)
+        .get();
+    } catch {
+      return res.status(503).json({ message: 'Review belum bisa diakses' });
+    }
     if (!existingSnap.empty) {
       return res.status(409).json({ message: 'Review sudah pernah dibuat' });
     }
 
-    await firestore.collection('reviews').add({
-      produk_id: req.params.produk_id,
-      pembeli_id: String(req.user.id),
-      rating: Number(rating),
-      komentar: komentar || '',
-      created_at: new Date().toISOString()
-    });
+    try {
+      await firestore.collection('reviews').add({
+        produk_id: req.params.produk_id,
+        pembeli_id: String(req.user.id),
+        rating: Number(rating),
+        komentar: komentar || '',
+        created_at: new Date().toISOString()
+      });
+    } catch {
+      return res.status(503).json({ message: 'Review belum bisa disimpan' });
+    }
 
     res.status(201).json({ message: 'Review berhasil ditambahkan' });
   } catch (e) {

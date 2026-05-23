@@ -1,0 +1,672 @@
+{
+  "info": {
+    "name": "Upcycle Marketplace API",
+    "description": "Complete API collection for Upcycle Marketplace - includes Auth Service, Product Service, Categories, Transactions, Reviews, Verification, and File Upload endpoints.\n\n## Setup\n1. Import this collection into Postman\n2. Set the `auth_url` and `product_url` collection variables (defaults to localhost)\n3. The `token` variable is automatically set upon successful login\n\n## Testing Flow\n1. Register -> 2. Login -> 3. Get Profile -> 4. Upgrade to Penjual -> 5. CRUD Categories -> 6. CRUD Products -> 7. Create Order -> 8. Review Products",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "upcycle-marketplace"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Auth Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{auth_url}}/health",
+              "host": ["{{auth_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check if Auth Service is running"
+          }
+        },
+        {
+          "name": "Product Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_url}}/health",
+              "host": ["{{product_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check if Product Service is running"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth Service",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    console.log('Registration successful');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{auth_url}}/auth/register",
+              "host": ["{{auth_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user account. Role defaults to 'pembeli' (buyer)."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.refresh_token);",
+                  "    pm.collectionVariables.set('user_role', jsonData.role);",
+                  "    console.log('Token saved! Role:', jsonData.role);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{auth_url}}/auth/login",
+              "host": ["{{auth_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with email/password. The token is automatically saved to the collection variable `token` for use in subsequent requests."
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{auth_url}}/auth/profile",
+              "host": ["{{auth_url}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Get the currently logged-in user's profile. If user is a penjual, also returns penjual_profiles data."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"nama_toko\": \"Upcycle Shop\",\n  \"deskripsi\": \"Toko barang upcycle berkualitas\",\n  \"alamat\": \"Jl. Contoh No. 123\",\n  \"telepon\": \"081234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{auth_url}}/auth/profile",
+              "host": ["{{auth_url}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Update profile. Include `nama_toko` to upgrade role from 'pembeli' to 'penjual'. A new token will be returned with updated role."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{auth_url}}/auth/refresh",
+              "host": ["{{auth_url}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Refresh an expired access token using the refresh token."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{auth_url}}/auth/logout",
+              "host": ["{{auth_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout and invalidate the refresh token."
+          }
+        },
+        {
+          "name": "List All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{auth_url}}/auth/users",
+              "host": ["{{auth_url}}"],
+              "path": ["auth", "users"]
+            },
+            "description": "List all registered users. Requires admin role."
+          }
+        },
+        {
+          "name": "Toggle User Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": 0\n}"
+            },
+            "url": {
+              "raw": "{{auth_url}}/auth/users/1/status",
+              "host": ["{{auth_url}}"],
+              "path": ["auth", "users", "1", "status"]
+            },
+            "description": "Activate (1) or deactivate (0) a user. Requires admin role. Change the user ID in URL as needed."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_url}}/products?page=1&limit=12",
+              "host": ["{{product_url}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "12", "description": "Items per page" },
+                { "key": "kategori", "value": null, "description": "Filter by category slug (optional)" },
+                { "key": "search", "value": null, "description": "Search by product name (optional)" }
+              ]
+            },
+            "description": "List all active products with pagination. Supports filtering by category slug and text search."
+          }
+        },
+        {
+          "name": "Get Product Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_url}}/products/1",
+              "host": ["{{product_url}}"],
+              "path": ["products", "1"]
+            },
+            "description": "Get detailed product info including photos (from Firestore) and reviews."
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Meja Kayu Pallet\",\n  \"deskripsi\": \"Meja dari kayu pallet bekas, di-finishing ulang\",\n  \"harga\": 250000,\n  \"stok\": 10,\n  \"kategori_id\": 1,\n  \"bahan_asal\": \"Kayu pallet bekas\",\n  \"fotos\": []\n}"
+            },
+            "url": {
+              "raw": "{{product_url}}/products",
+              "host": ["{{product_url}}"],
+              "path": ["products"]
+            },
+            "description": "Create a new product. Requires penjual or admin role. The `fotos` array should contain URLs from the upload endpoint."
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Meja Kayu Pallet Premium\",\n  \"deskripsi\": \"Meja premium dari kayu pallet bekas\",\n  \"harga\": 350000,\n  \"stok\": 8,\n  \"kategori_id\": 1,\n  \"bahan_asal\": \"Kayu pallet bekas\"\n}"
+            },
+            "url": {
+              "raw": "{{product_url}}/products/1",
+              "host": ["{{product_url}}"],
+              "path": ["products", "1"]
+            },
+            "description": "Update a product. Only the product owner or admin can update."
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{product_url}}/products/1",
+              "host": ["{{product_url}}"],
+              "path": ["products", "1"]
+            },
+            "description": "Delete a product. Only the product owner or admin can delete."
+          }
+        },
+        {
+          "name": "Get My Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{product_url}}/products/penjual/me",
+              "host": ["{{product_url}}"],
+              "path": ["products", "penjual", "me"]
+            },
+            "description": "Get all products owned by the currently logged-in penjual."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_url}}/kategori",
+              "host": ["{{product_url}}"],
+              "path": ["kategori"]
+            },
+            "description": "List all categories. Public endpoint. Also available at `/categories`."
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Furniture\",\n  \"slug\": \"furniture\",\n  \"deskripsi\": \"Kategori furniture upcycle\"\n}"
+            },
+            "url": {
+              "raw": "{{product_url}}/kategori",
+              "host": ["{{product_url}}"],
+              "path": ["kategori"]
+            },
+            "description": "Create a new category. Requires admin role."
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Furniture Updated\",\n  \"slug\": \"furniture\",\n  \"deskripsi\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{product_url}}/kategori/1",
+              "host": ["{{product_url}}"],
+              "path": ["kategori", "1"]
+            },
+            "description": "Update a category. Requires admin role."
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{product_url}}/kategori/1",
+              "host": ["{{product_url}}"],
+              "path": ["kategori", "1"]
+            },
+            "description": "Delete a category. Requires admin role."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions / Orders",
+      "item": [
+        {
+          "name": "Create Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"produk_id\": 1,\n      \"qty\": 2\n    }\n  ],\n  \"alamat_pengiriman\": \"Jl. Contoh No. 123, Jakarta\",\n  \"metode_pembayaran\": \"transfer_bank\"\n}"
+            },
+            "url": {
+              "raw": "{{product_url}}/transaksi",
+              "host": ["{{product_url}}"],
+              "path": ["transaksi"]
+            },
+            "description": "Create a new transaction/order. Requires authentication. Validates stock with row-level locking. Also available at `/orders`."
+          }
+        },
+        {
+          "name": "Get My Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{product_url}}/transaksi/me?page=1&limit=10",
+              "host": ["{{product_url}}"],
+              "path": ["transaksi", "me"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Get the logged-in user's transaction history with pagination."
+          }
+        },
+        {
+          "name": "Get Transaction Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{product_url}}/transaksi/1",
+              "host": ["{{product_url}}"],
+              "path": ["transaksi", "1"]
+            },
+            "description": "Get transaction detail including items. Accessible by the transaction owner or admin."
+          }
+        },
+        {
+          "name": "List All Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{product_url}}/transaksi?page=1&limit=20",
+              "host": ["{{product_url}}"],
+              "path": ["transaksi"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "List all transactions. Requires admin role."
+          }
+        },
+        {
+          "name": "Update Transaction Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"shipped\"\n}"
+            },
+            "url": {
+              "raw": "{{product_url}}/transaksi/1/status",
+              "host": ["{{product_url}}"],
+              "path": ["transaksi", "1", "status"]
+            },
+            "description": "Update transaction status. Valid statuses: pending, paid, processing, shipped, delivered, cancelled. Requires admin role."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "List Product Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_url}}/reviews/1",
+              "host": ["{{product_url}}"],
+              "path": ["reviews", "1"]
+            },
+            "description": "List all reviews for a specific product (max 20 latest). Public endpoint."
+          }
+        },
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"komentar\": \"Produk bagus, sesuai deskripsi!\"\n}"
+            },
+            "url": {
+              "raw": "{{product_url}}/reviews/1",
+              "host": ["{{product_url}}"],
+              "path": ["reviews", "1"]
+            },
+            "description": "Add a review for a product. Only the buyer of the product can review, and only once per product."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verification",
+      "item": [
+        {
+          "name": "List Pending Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{product_url}}/verifikasi",
+              "host": ["{{product_url}}"],
+              "path": ["verifikasi"]
+            },
+            "description": "List all products with status 'pending' (awaiting approval). Requires admin role."
+          }
+        },
+        {
+          "name": "Approve / Reject Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"catatan\": \"Produk sudah sesuai ketentuan\"\n}"
+            },
+            "url": {
+              "raw": "{{product_url}}/verifikasi/1",
+              "host": ["{{product_url}}"],
+              "path": ["verifikasi", "1"]
+            },
+            "description": "Approve (status: 'approved') or reject (status: 'rejected') a pending product. Requires admin role."
+          }
+        },
+        {
+          "name": "Review Product (via Verifikasi)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"komentar\": \"Produk cukup bagus\"\n}"
+            },
+            "url": {
+              "raw": "{{product_url}}/verifikasi/review/1",
+              "host": ["{{product_url}}"],
+              "path": ["verifikasi", "review", "1"]
+            },
+            "description": "Alternative review endpoint. Same behavior as POST /reviews/:produk_id - only the buyer can review once."
+          }
+        },
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{product_url}}/verifikasi/notifikasi/me",
+              "host": ["{{product_url}}"],
+              "path": ["verifikasi", "notifikasi", "me"]
+            },
+            "description": "Get the logged-in user's notifications (order updates, product verification status, etc.)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Upload",
+      "item": [
+        {
+          "name": "Upload Photos",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select up to 5 image files"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{product_url}}/upload",
+              "host": ["{{product_url}}"],
+              "path": ["upload"]
+            },
+            "description": "Upload product photos to Google Cloud Storage. Accepts up to 5 image files (max 10MB each) via form-data field `photos`. Returns array of public URLs."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "auth_url",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "product_url",
+      "value": "http://localhost:3002",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_role",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
