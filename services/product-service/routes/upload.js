@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const multer = require('multer');
 const { Storage } = require('@google-cloud/storage');
-const { verifyToken, verifyPenjual } = require('../middleware/auth');
+const { verifyPenjual } = require('../middleware/auth');
 
 // Use memory storage so we can stream to GCS directly
 const upload = multer({
@@ -15,16 +15,22 @@ const upload = multer({
   }
 });
 
-// Initialize GCS
-const storage = new Storage({
-  projectId: process.env.GCP_PROJECT_ID,
-  credentials: JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-});
-
 // Firebase Storage default bucket is projectid.firebasestorage.app OR projectid.appspot.com
 // Check STORAGE_BUCKET env, fallback to firebasestorage.app format
 const BUCKET_NAME = process.env.STORAGE_BUCKET || `${process.env.GCP_PROJECT_ID}.firebasestorage.app`;
-const bucket = storage.bucket(BUCKET_NAME);
+
+const getBucket = () => {
+  if (!process.env.GCP_PROJECT_ID) {
+    throw new Error('GCP_PROJECT_ID belum dikonfigurasi');
+  }
+
+  const options = { projectId: process.env.GCP_PROJECT_ID };
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    options.credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  }
+
+  return new Storage(options).bucket(BUCKET_NAME);
+};
 
 /**
  * POST /upload
@@ -40,6 +46,7 @@ router.post('/', verifyPenjual, upload.array('photos', 5), async (req, res) => {
       return res.status(400).json({ message: 'Tidak ada file yang diupload' });
     }
 
+    const bucket = getBucket();
     const makePublic = process.env.UPLOAD_PUBLIC !== 'false';
 
     const uploadPromises = req.files.map(file => {
@@ -76,6 +83,9 @@ router.post('/', verifyPenjual, upload.array('photos', 5), async (req, res) => {
   } catch (e) {
     if (e.message && e.message.includes('gambar')) {
       return res.status(400).json({ message: e.message });
+    }
+    if (e.message && e.message.includes('dikonfigurasi')) {
+      return res.status(503).json({ message: e.message });
     }
     res.status(500).json({ message: 'Gagal upload foto', error: e.message });
   }

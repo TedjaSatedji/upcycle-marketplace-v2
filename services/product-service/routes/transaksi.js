@@ -7,23 +7,44 @@ const { verifyToken, verifyAdmin } = require('../middleware/auth');
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { items, alamat_pengiriman, metode_pembayaran } = req.body;
-    if (!items?.length) return res.status(400).json({ message: 'Items tidak boleh kosong' });
+    if (!Array.isArray(items) || !items.length) return res.status(400).json({ message: 'Items tidak boleh kosong' });
 
-    // Validasi stok & hitung total
-    let total = 0;
-    const itemsDetail = [];
     for (const item of items) {
-      const [rows] = await db.query('SELECT * FROM produk WHERE id = ? AND status = "active"', [item.produk_id]);
-      if (!rows.length) return res.status(400).json({ message: `Produk ${item.produk_id} tidak tersedia` });
-      if (rows[0].stok < item.qty) return res.status(400).json({ message: `Stok ${rows[0].nama} tidak cukup` });
-      const subtotal = rows[0].harga * item.qty;
-      total += subtotal;
-      itemsDetail.push({ ...rows[0], qty: item.qty, subtotal });
+      if (!item.produk_id || !Number.isInteger(Number(item.qty)) || Number(item.qty) <= 0) {
+        return res.status(400).json({ message: 'Setiap item wajib punya produk_id dan qty positif' });
+      }
+    }
+
+    const productIds = items.map(item => Number(item.produk_id));
+    if (new Set(productIds).size !== productIds.length) {
+      return res.status(400).json({ message: 'Produk duplikat dalam satu transaksi tidak diizinkan' });
     }
 
     const conn = await db.getConnection();
     await conn.beginTransaction();
+    let trxId;
+    let total = 0;
     try {
+      // Validasi stok di dalam transaksi supaya stok tidak race saat checkout bersamaan.
+      const itemsDetail = [];
+      for (const item of items) {
+        const qty = Number(item.qty);
+        const [rows] = await conn.query('SELECT * FROM produk WHERE id = ? AND status = "active" FOR UPDATE', [item.produk_id]);
+        if (!rows.length) {
+          await conn.rollback();
+          conn.release();
+          return res.status(400).json({ message: `Produk ${item.produk_id} tidak tersedia` });
+        }
+        if (rows[0].stok < qty) {
+          await conn.rollback();
+          conn.release();
+          return res.status(400).json({ message: `Stok ${rows[0].nama} tidak cukup` });
+        }
+        const subtotal = Number(rows[0].harga) * qty;
+        total += subtotal;
+        itemsDetail.push({ ...rows[0], qty, subtotal });
+      }
+
       const [trx] = await conn.query(
         'INSERT INTO transaksi (pembeli_id, total_harga, alamat_pengiriman, metode_pembayaran) VALUES (?, ?, ?, ?)',
         [req.user.id, total, alamat_pengiriman, metode_pembayaran]
@@ -38,24 +59,25 @@ router.post('/', verifyToken, async (req, res) => {
       }
 
       await conn.commit();
+      trxId = trx.insertId;
       conn.release();
-
-      // Kirim notifikasi ke Firestore
-      await firestore.collection('notifikasi').add({
-        user_id: String(req.user.id),
-        type: 'order_created',
-        message: `Pesanan #${trx.insertId} berhasil dibuat`,
-        transaksi_id: String(trx.insertId),
-        read: false,
-        created_at: new Date().toISOString()
-      });
-
-      res.status(201).json({ message: 'Transaksi berhasil', transaksi_id: trx.insertId, total });
     } catch (e) {
       await conn.rollback();
       conn.release();
       throw e;
     }
+
+    // Notifikasi tidak boleh membatalkan transaksi yang sudah berhasil commit.
+    if (firestore) await firestore.collection('notifikasi').add({
+      user_id: String(req.user.id),
+      type: 'order_created',
+      message: `Pesanan #${trxId} berhasil dibuat`,
+      transaksi_id: String(trxId),
+      read: false,
+      created_at: new Date().toISOString()
+    }).catch(() => {});
+
+    res.status(201).json({ message: 'Transaksi berhasil', transaksi_id: trxId, total });
   } catch (e) {
     res.status(500).json({ message: 'Server error', error: e.message });
   }
@@ -116,7 +138,7 @@ router.put('/:id/status', verifyAdmin, async (req, res) => {
     await db.query('UPDATE transaksi SET status = ? WHERE id = ?', [status, req.params.id]);
 
     const [rows] = await db.query('SELECT pembeli_id FROM transaksi WHERE id = ?', [req.params.id]);
-    if (rows.length) {
+    if (rows.length && firestore) {
       await firestore.collection('notifikasi').add({
         user_id: String(rows[0].pembeli_id),
         type: 'order_status_update',

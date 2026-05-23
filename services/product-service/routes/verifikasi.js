@@ -32,7 +32,7 @@ router.post('/:produk_id', verifyAdmin, async (req, res) => {
 
     // Notif ke penjual via Firestore
     const [rows] = await db.query('SELECT penjual_id FROM produk WHERE id = ?', [req.params.produk_id]);
-    if (rows.length) {
+    if (rows.length && firestore) {
       await firestore.collection('notifikasi').add({
         user_id: String(rows[0].penjual_id),
         type: 'product_verification',
@@ -55,6 +55,7 @@ router.post('/review/:produk_id', verifyToken, async (req, res) => {
   try {
     const { rating, komentar } = req.body;
     if (!rating || rating < 1 || rating > 5) return res.status(400).json({ message: 'Rating harus 1-5' });
+    if (!firestore) return res.status(503).json({ message: 'Review belum dikonfigurasi' });
 
     const [purchases] = await db.query(
       `SELECT t.id FROM transaksi t 
@@ -93,6 +94,8 @@ router.post('/review/:produk_id', verifyToken, async (req, res) => {
 // GET /verifikasi/notifikasi/me — notif user sendiri
 router.get('/notifikasi/me', verifyToken, async (req, res) => {
   try {
+    if (!firestore) return res.json([]);
+
     const snap = await firestore.collection('notifikasi')
       .where('user_id', '==', String(req.user.id))
       .orderBy('created_at', 'desc')

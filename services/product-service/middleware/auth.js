@@ -18,11 +18,9 @@ const verifyAdmin = (req, res, next) => {
   });
 };
 
-// Any authenticated user can sell (buyer/seller are unified)
 const verifyPenjual = (req, res, next) => {
   verifyToken(req, res, () => {
-    if (req.user.role === 'admin' || req.user.role === 'penjual' || 
-        req.user.role === 'pembeli' || req.user.role === 'user') {
+    if (req.user.role === 'admin' || req.user.role === 'penjual') {
       next();
     } else {
       return res.status(403).json({ message: 'Akses ditolak' });

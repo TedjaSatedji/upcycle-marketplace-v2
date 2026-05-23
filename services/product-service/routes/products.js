@@ -24,6 +24,10 @@ router.get('/', async (req, res) => {
     // Ambil foto dari Firestore
     const produkWithFotos = await Promise.all(rows.map(async (p) => {
       try {
+        if (!firestore) {
+          p.fotos = [];
+          return p;
+        }
         const doc = await firestore.collection('produk_media').doc(String(p.id)).get();
         p.fotos = doc.exists ? doc.data().fotos : [];
       } catch { p.fotos = []; }
@@ -45,10 +49,16 @@ router.post('/', verifyPenjual, async (req, res) => {
   try {
     const { nama, deskripsi, harga, stok, kategori_id, bahan_asal, fotos = [] } = req.body;
     if (!nama || !harga) return res.status(400).json({ message: 'Nama dan harga wajib diisi' });
+    if (Number(harga) <= 0) return res.status(400).json({ message: 'Harga harus lebih dari 0' });
+    if (stok !== undefined && (!Number.isInteger(Number(stok)) || Number(stok) < 0)) {
+      return res.status(400).json({ message: 'Stok harus angka 0 atau lebih' });
+    }
+    if (!Array.isArray(fotos)) return res.status(400).json({ message: 'Fotos harus berupa array URL' });
+    if (fotos.length && !firestore) return res.status(503).json({ message: 'Penyimpanan foto belum dikonfigurasi' });
 
     const [result] = await db.query(
       'INSERT INTO produk (penjual_id, kategori_id, nama, deskripsi, harga, stok, bahan_asal) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [req.user.id, kategori_id, nama, deskripsi, harga, stok, bahan_asal]
+      [req.user.id, kategori_id, nama, deskripsi, harga, stok || 0, bahan_asal]
     );
 
     // Simpan foto ke Firestore
@@ -79,12 +89,20 @@ router.put('/:id', verifyPenjual, async (req, res) => {
     }
 
     const { nama, deskripsi, harga, stok, kategori_id, bahan_asal, fotos } = req.body;
+    if (!nama || !harga) return res.status(400).json({ message: 'Nama dan harga wajib diisi' });
+    if (Number(harga) <= 0) return res.status(400).json({ message: 'Harga harus lebih dari 0' });
+    if (stok !== undefined && (!Number.isInteger(Number(stok)) || Number(stok) < 0)) {
+      return res.status(400).json({ message: 'Stok harus angka 0 atau lebih' });
+    }
+    if (fotos !== undefined && !Array.isArray(fotos)) return res.status(400).json({ message: 'Fotos harus berupa array URL' });
+
     await db.query(
       'UPDATE produk SET nama=?, deskripsi=?, harga=?, stok=?, kategori_id=?, bahan_asal=? WHERE id=?',
       [nama, deskripsi, harga, stok, kategori_id, bahan_asal, req.params.id]
     );
 
     if (fotos) {
+      if (!firestore) return res.status(503).json({ message: 'Penyimpanan foto belum dikonfigurasi' });
       await firestore.collection('produk_media').doc(req.params.id).set({
         produk_id: req.params.id,
         penjual_id: String(req.user.id),
@@ -110,7 +128,7 @@ router.delete('/:id', verifyPenjual, async (req, res) => {
     }
 
     await db.query('DELETE FROM produk WHERE id = ?', [req.params.id]);
-    await firestore.collection('produk_media').doc(req.params.id).delete().catch(() => {});
+    if (firestore) await firestore.collection('produk_media').doc(req.params.id).delete().catch(() => {});
 
     res.json({ message: 'Produk berhasil dihapus' });
   } catch (e) {
@@ -146,13 +164,18 @@ router.get('/:id', async (req, res) => {
     const produk = rows[0];
 
     // Foto + review dari Firestore
-    const [mediaDoc, reviewsSnap] = await Promise.all([
-      firestore.collection('produk_media').doc(String(produk.id)).get(),
-      firestore.collection('reviews').where('produk_id', '==', String(produk.id)).limit(10).get()
-    ]);
+    if (firestore) {
+      const [mediaDoc, reviewsSnap] = await Promise.all([
+        firestore.collection('produk_media').doc(String(produk.id)).get(),
+        firestore.collection('reviews').where('produk_id', '==', String(produk.id)).limit(10).get()
+      ]);
 
-    produk.fotos = mediaDoc.exists ? mediaDoc.data().fotos : [];
-    produk.reviews = reviewsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      produk.fotos = mediaDoc.exists ? mediaDoc.data().fotos : [];
+      produk.reviews = reviewsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } else {
+      produk.fotos = [];
+      produk.reviews = [];
+    }
 
     res.json(produk);
   } catch (e) {

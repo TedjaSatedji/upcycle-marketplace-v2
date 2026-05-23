@@ -10,6 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'auth-service' }));
+app.use('/', authRoutes);
 app.use('/auth', authRoutes);
 
 app.listen(PORT, () => console.log(`Auth service running on port ${PORT}`));

@@ -7,6 +7,12 @@ const { verifyToken, verifyAdmin } = require('../middleware/auth');
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 const JWT_EXPIRES = '1h';
 
+const signAccessToken = (user) => jwt.sign(
+  { id: user.id, email: user.email, role: user.role },
+  JWT_SECRET,
+  { expiresIn: JWT_EXPIRES }
+);
+
 // POST /auth/register
 router.post('/register', async (req, res) => {
   try {
@@ -42,7 +48,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Email atau password salah' });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const token = signAccessToken(user);
     const refreshToken = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '7d' });
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
@@ -79,15 +85,39 @@ router.get('/profile', verifyToken, async (req, res) => {
 router.put('/profile', verifyToken, async (req, res) => {
   try {
     const { name, nama_toko, deskripsi, alamat, telepon } = req.body;
+    if (!name) return res.status(400).json({ message: 'Nama wajib diisi' });
+
     await db.query('UPDATE users SET name = ? WHERE id = ?', [name, req.user.id]);
 
-    if (req.user.role === 'penjual' && nama_toko) {
-      await db.query(
-        'UPDATE penjual_profiles SET nama_toko = ?, deskripsi = ?, alamat = ?, telepon = ? WHERE user_id = ?',
-        [nama_toko, deskripsi, alamat, telepon, req.user.id]
-      );
+    let token;
+    let role = req.user.role;
+
+    if (nama_toko) {
+      const [profiles] = await db.query('SELECT id FROM penjual_profiles WHERE user_id = ?', [req.user.id]);
+      if (profiles.length) {
+        await db.query(
+          'UPDATE penjual_profiles SET nama_toko = ?, deskripsi = ?, alamat = ?, telepon = ? WHERE user_id = ?',
+          [nama_toko, deskripsi, alamat, telepon, req.user.id]
+        );
+      } else {
+        await db.query(
+          'INSERT INTO penjual_profiles (user_id, nama_toko, deskripsi, alamat, telepon) VALUES (?, ?, ?, ?, ?)',
+          [req.user.id, nama_toko, deskripsi, alamat, telepon]
+        );
+      }
+
+      if (req.user.role === 'pembeli') {
+        await db.query('UPDATE users SET role = ? WHERE id = ?', ['penjual', req.user.id]);
+        role = 'penjual';
+        token = signAccessToken({ id: req.user.id, email: req.user.email, role });
+      }
     }
-    res.json({ message: 'Profil berhasil diupdate' });
+
+    res.json({
+      message: nama_toko ? 'Profil toko berhasil diupdate' : 'Profil berhasil diupdate',
+      role,
+      ...(token ? { token } : {})
+    });
   } catch (e) {
     res.status(500).json({ message: 'Server error', error: e.message });
   }
@@ -107,7 +137,7 @@ router.post('/refresh', async (req, res) => {
     const [userRows] = await db.query('SELECT * FROM users WHERE id = ?', [decoded.id]);
     const user = userRows[0];
 
-    const newToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const newToken = signAccessToken(user);
     res.json({ token: newToken });
   } catch (e) {
     res.status(500).json({ message: 'Server error', error: e.message });
