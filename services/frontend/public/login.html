@@ -190,12 +190,16 @@
 
   <script src="/config.js"></script>
   <script>
+    let loginInFlight = false;
+
     if (localStorage.getItem('token')) {
       const role = localStorage.getItem('role');
       window.location.href = role === 'admin' ? '/admin.html' : '/katalog.html';
     }
 
     async function doLogin() {
+      if (loginInFlight) return;
+
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const errEl = document.getElementById('err');
@@ -203,6 +207,7 @@
       errEl.style.display = 'none';
       if (!email || !password) { errEl.textContent = 'Email dan password wajib diisi'; errEl.style.display = 'block'; return; }
       
+      loginInFlight = true;
       btn.disabled = true; btn.textContent = 'Memverifikasi...';
       try {
         const res = await api.post(`${CONFIG.AUTH_URL}/login`, { email, password });
@@ -218,7 +223,7 @@
         localStorage.setItem('role', data.role);
         window.location.href = data.role === 'admin' ? '/admin.html' : '/katalog.html';
       } catch { errEl.textContent = 'Gagal terhubung ke server utama'; errEl.style.display = 'block'; }
-      finally { btn.disabled = false; btn.textContent = 'Autentikasi Aman'; }
+      finally { loginInFlight = false; btn.disabled = false; btn.textContent = 'Autentikasi Aman'; }
     }
 
     document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });

@@ -46,8 +46,8 @@ router.post('/', verifyToken, async (req, res) => {
       }
 
       const [trx] = await conn.query(
-        'INSERT INTO transaksi (pembeli_id, total_harga, alamat_pengiriman, metode_pembayaran) VALUES (?, ?, ?, ?)',
-        [req.user.id, total, alamat_pengiriman, metode_pembayaran]
+        'INSERT INTO transaksi (pembeli_id, total_harga, alamat_pengiriman, metode_pembayaran, status) VALUES (?, ?, ?, ?, ?)',
+        [req.user.id, total, alamat_pengiriman, metode_pembayaran, 'paid']
       );
 
       for (const item of itemsDetail) {
@@ -90,14 +90,43 @@ router.get('/me', verifyToken, async (req, res) => {
     const offset = (page - 1) * limit;
     const [rows] = await db.query(
       `SELECT t.*, 
-        JSON_ARRAYAGG(JSON_OBJECT('produk_id', ti.produk_id, 'qty', ti.qty, 'subtotal', ti.subtotal)) as items
+        JSON_ARRAYAGG(JSON_OBJECT('produk_id', ti.produk_id, 'qty', ti.qty, 'subtotal', ti.subtotal, 'nama', p.nama, 'harga', p.harga)) as items
        FROM transaksi t
        LEFT JOIN transaksi_item ti ON t.id = ti.transaksi_id
+       LEFT JOIN produk p ON ti.produk_id = p.id
        WHERE t.pembeli_id = ? GROUP BY t.id ORDER BY t.created_at DESC LIMIT ? OFFSET ?`,
       [req.user.id, Number(limit), Number(offset)]
     );
     const [[{ total }]] = await db.query(
       'SELECT COUNT(*) as total FROM transaksi WHERE pembeli_id = ?',
+      [req.user.id]
+    );
+    res.json({ data: rows, total, page: Number(page), limit: Number(limit) });
+  } catch (e) {
+    res.status(500).json({ message: 'Server error', error: e.message });
+  }
+});
+
+// GET /transaksi/seller — riwayat pesanan untuk penjual
+router.get('/seller', verifyToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    const [rows] = await db.query(
+      `SELECT t.*, 
+        JSON_ARRAYAGG(JSON_OBJECT('produk_id', ti.produk_id, 'qty', ti.qty, 'subtotal', ti.subtotal, 'nama', p.nama, 'harga', p.harga)) as items
+       FROM transaksi t
+       JOIN transaksi_item ti ON t.id = ti.transaksi_id
+       JOIN produk p ON ti.produk_id = p.id
+       WHERE p.penjual_id = ?
+       GROUP BY t.id ORDER BY t.created_at DESC LIMIT ? OFFSET ?`,
+      [req.user.id, Number(limit), Number(offset)]
+    );
+    const [[{ total }]] = await db.query(
+      `SELECT COUNT(DISTINCT t.id) as total FROM transaksi t
+       JOIN transaksi_item ti ON t.id = ti.transaksi_id
+       JOIN produk p ON ti.produk_id = p.id
+       WHERE p.penjual_id = ?`,
       [req.user.id]
     );
     res.json({ data: rows, total, page: Number(page), limit: Number(limit) });
@@ -161,7 +190,12 @@ router.get('/', verifyAdmin, async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
     const [rows] = await db.query(
-      'SELECT * FROM transaksi ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      `SELECT t.*, 
+        JSON_ARRAYAGG(JSON_OBJECT('produk_id', ti.produk_id, 'qty', ti.qty, 'subtotal', ti.subtotal, 'nama', p.nama, 'harga', p.harga)) as items
+       FROM transaksi t
+       LEFT JOIN transaksi_item ti ON t.id = ti.transaksi_id
+       LEFT JOIN produk p ON ti.produk_id = p.id
+       GROUP BY t.id ORDER BY t.created_at DESC LIMIT ? OFFSET ?`,
       [Number(limit), Number(offset)]
     );
     const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM transaksi');
