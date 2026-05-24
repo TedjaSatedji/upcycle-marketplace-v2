@@ -141,15 +141,17 @@ router.get('/:id', verifyToken, async (req, res) => {
     const [rows] = await db.query('SELECT * FROM transaksi WHERE id = ?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
 
-    if (req.user.role !== 'admin' && rows[0].pembeli_id !== req.user.id) {
-      return res.status(403).json({ message: 'Akses ditolak' });
-    }
-
     const [items] = await db.query(
-      `SELECT ti.*, p.nama, p.harga FROM transaksi_item ti 
+      `SELECT ti.*, p.nama, p.harga, p.penjual_id FROM transaksi_item ti 
        JOIN produk p ON ti.produk_id = p.id WHERE ti.transaksi_id = ?`,
       [req.params.id]
     );
+
+    const isSeller = items.some(item => item.penjual_id === req.user.id);
+
+    if (req.user.role !== 'admin' && rows[0].pembeli_id !== req.user.id && !isSeller) {
+      return res.status(403).json({ message: 'Akses ditolak' });
+    }
 
     res.json({ ...rows[0], items });
   } catch (e) {

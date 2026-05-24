@@ -15,7 +15,9 @@ router.get('/', async (req, res) => {
     if (search) { where.push('p.nama LIKE ?'); params.push(`%${search}%`); }
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const listQuery = `SELECT p.*, k.nama as kategori_nama FROM produk p 
+    const listQuery = `SELECT p.*, k.nama as kategori_nama, 
+                       (SELECT COALESCE(SUM(ti.qty), 0) FROM transaksi_item ti JOIN transaksi t ON ti.transaksi_id = t.id WHERE ti.produk_id = p.id AND t.status IN ('paid', 'processing', 'shipped', 'delivered')) as terjual
+                       FROM produk p 
                        LEFT JOIN kategori k ON p.kategori_id = k.id 
                        ${whereSql} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`;
 
@@ -140,7 +142,9 @@ router.delete('/:id', verifyPenjual, async (req, res) => {
 router.get('/penjual/me', verifyPenjual, async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT p.*, k.nama as kategori_nama FROM produk p 
+      `SELECT p.*, k.nama as kategori_nama, 
+       (SELECT COALESCE(SUM(ti.qty), 0) FROM transaksi_item ti JOIN transaksi t ON ti.transaksi_id = t.id WHERE ti.produk_id = p.id AND t.status IN ('paid', 'processing', 'shipped', 'delivered')) as terjual
+       FROM produk p 
        LEFT JOIN kategori k ON p.kategori_id = k.id 
        WHERE p.penjual_id = ? ORDER BY p.created_at DESC`,
       [req.user.id]
@@ -155,7 +159,9 @@ router.get('/penjual/me', verifyPenjual, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT p.*, k.nama as kategori_nama FROM produk p 
+      `SELECT p.*, k.nama as kategori_nama, 
+       (SELECT COALESCE(SUM(ti.qty), 0) FROM transaksi_item ti JOIN transaksi t ON ti.transaksi_id = t.id WHERE ti.produk_id = p.id AND t.status IN ('paid', 'processing', 'shipped', 'delivered')) as terjual
+       FROM produk p 
        LEFT JOIN kategori k ON p.kategori_id = k.id WHERE p.id = ?`,
       [req.params.id]
     );

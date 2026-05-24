@@ -7,6 +7,7 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || 'upcycle_products',
   waitForConnections: true,
   connectionLimit: 10,
+  timezone: 'Z',
 });
 
 module.exports = pool;

@@ -359,6 +359,33 @@
     ::-webkit-scrollbar-track { background: var(--bg-dark); }
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
+      z-index: 100; display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: all 0.3s;
+    }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal-content {
+      background: var(--bg-dark); border: 1px solid var(--glass-border);
+      border-radius: 20px; width: 90%; max-width: 600px; max-height: 90vh;
+      overflow-y: auto; padding: 30px; position: relative;
+      transform: translateY(20px); transition: all 0.3s;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .modal-overlay.active .modal-content { transform: translateY(0); }
+    .modal-close {
+      position: absolute; top: 20px; right: 20px;
+      background: none; border: none; color: var(--text-muted);
+      font-size: 24px; cursor: pointer; transition: color 0.2s;
+    }
+    .modal-close:hover { color: var(--danger); }
+    .product-detail-img { width: 100%; height: 300px; object-fit: cover; border-radius: 12px; margin-bottom: 20px; background: rgba(255,255,255,0.05); }
+    .product-detail-row { display: flex; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
+    .product-detail-label { width: 120px; color: var(--text-muted); font-weight: 500; }
+    .product-detail-value { flex: 1; color: var(--text-main); font-weight: 500; }
   </style>
 </head>
 <body>
@@ -467,6 +494,17 @@
     </div>
   </main>
 
+  <!-- MODAL -->
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeProductModal()">&times;</button>
+      <h2 style="margin-bottom: 20px; font-size: 24px;" id="modal-title">Detail Produk</h2>
+      <div id="modal-body">
+        <div class="loading">Memuat detail...</div>
+      </div>
+    </div>
+  </div>
+
   <script src="/config.js"></script>
   <script>
     // Auth guard
@@ -486,6 +524,58 @@
       api.post(`${CONFIG.AUTH_URL}/logout`, { refresh_token: localStorage.getItem('refresh_token') });
       localStorage.clear();
       window.location.href = '/login.html';
+    }
+
+    function closeProductModal() {
+      document.getElementById('product-modal').classList.remove('active');
+    }
+
+    async function showProductDetail(id) {
+      document.getElementById('product-modal').classList.add('active');
+      const body = document.getElementById('modal-body');
+      body.innerHTML = '<div class="loading">Memuat detail...</div>';
+      
+      try {
+        const res = await api.get(`${CONFIG.PRODUCT_URL}/products/${id}`);
+        const p = await res.json();
+        
+        let imgHtml = '';
+        if (p.fotos && p.fotos.length > 0) {
+          imgHtml = `<img src="${p.fotos[0]}" class="product-detail-img" alt="Foto Produk" onerror="this.src=\'https://via.placeholder.com/600x300?text=No+Image\'">`;
+        } else {
+          imgHtml = `<div class="product-detail-img" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted)">Tidak ada foto</div>`;
+        }
+        
+        body.innerHTML = `
+          ${imgHtml}
+          <div class="product-detail-row">
+            <div class="product-detail-label">Nama</div>
+            <div class="product-detail-value">${p.nama || '-'}</div>
+          </div>
+          <div class="product-detail-row">
+            <div class="product-detail-label">Kategori</div>
+            <div class="product-detail-value">${p.kategori_nama || '-'}</div>
+          </div>
+          <div class="product-detail-row">
+            <div class="product-detail-label">Harga</div>
+            <div class="product-detail-value" style="color:var(--accent)">Rp ${Number(p.harga).toLocaleString('id-ID')}</div>
+          </div>
+          <div class="product-detail-row">
+            <div class="product-detail-label">Stok</div>
+            <div class="product-detail-value">${p.stok || 0} unit</div>
+          </div>
+          <div class="product-detail-row">
+            <div class="product-detail-label">Deskripsi</div>
+            <div class="product-detail-value" style="white-space:pre-wrap;font-weight:400">${p.deskripsi || '-'}</div>
+          </div>
+          <div class="product-detail-row">
+            <div class="product-detail-label">Status</div>
+            <div class="product-detail-value"><span class="badge ${p.status}">${p.status === 'active' ? 'Live' : p.status}</span></div>
+          </div>
+        `;
+      } catch (err) {
+        body.innerHTML = '<div class="empty" style="color:var(--danger)">Gagal memuat detail produk</div>';
+      }
     }
 
     async function loadPage(name) {
@@ -539,6 +629,7 @@
               <td>${p.kategori_nama || 'Umum'}</td>
               <td style="color:var(--accent)">Rp ${Number(p.harga).toLocaleString('id-ID')}</td>
               <td>
+                <button class="btn-action" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);margin-right:8px" onclick="showProductDetail(${p.id})">🔍 Detail</button>
                 <button class="btn-action btn-approve" onclick="verifikasi(${p.id},'approved')">✓ Izinkan</button>
                 <button class="btn-action btn-reject" onclick="verifikasi(${p.id},'rejected')" style="margin-left:8px">✗ Tolak</button>
               </td>
@@ -572,6 +663,7 @@
               <td>${p.stok} unit</td>
               <td><span class="badge ${p.status}">${p.status === 'active' ? 'Live' : p.status}</span></td>
               <td>
+                <button class="btn-action" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);margin-right:8px" onclick="showProductDetail(${p.id})">🔍 Detail</button>
                 <button class="btn-action btn-reject" onclick="hapusProduk(${p.id})">Hapus</button>
               </td>
             </tr>`).join('')}

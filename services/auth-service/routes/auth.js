@@ -157,6 +157,29 @@ router.post('/logout', verifyToken, async (req, res) => {
   }
 });
 
+// GET /auth/users/:id/public — get public profile
+router.get('/users/:id/public', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT id, name, role, created_at FROM users WHERE id = ? AND is_active = 1',
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ message: 'User tidak ditemukan' });
+
+    let profile = rows[0];
+    if (profile.role === 'penjual') {
+      const [pRows] = await db.query('SELECT nama_toko, deskripsi, alamat FROM penjual_profiles WHERE user_id = ?', [req.params.id]);
+      if (pRows.length) {
+        profile.nama_toko = pRows[0].nama_toko;
+        profile.deskripsi_toko = pRows[0].deskripsi;
+      }
+    }
+    res.json(profile);
+  } catch (e) {
+    res.status(500).json({ message: 'Server error', error: e.message });
+  }
+});
+
 // GET /auth/users — admin only
 router.get('/users', verifyAdmin, async (req, res) => {
   try {

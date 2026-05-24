@@ -33,7 +33,7 @@ gcloud run deploy auth-service \
   --platform managed \
   --region $REGION \
   --allow-unauthenticated \
-  --set-env-vars "DB_HOST=$DB_HOST,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=upcycle_auth,JWT_SECRET=$JWT_SECRET" \
+  --set-env-vars "DB_HOST=$DB_HOST,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=upcycle_auth,JWT_SECRET=$JWT_SECRET,TZ=Asia/Jakarta" \
   --vpc-connector your-vpc-connector   # biar bisa akses GCE internal IP
 
 gcloud run deploy product-service \
@@ -41,7 +41,7 @@ gcloud run deploy product-service \
   --platform managed \
   --region $REGION \
   --allow-unauthenticated \
-  --set-env-vars "DB_HOST=$DB_HOST,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=upcycle_products,JWT_SECRET=$JWT_SECRET,GCP_PROJECT_ID=$PROJECT_ID" \
+  --set-env-vars "DB_HOST=$DB_HOST,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=upcycle_products,JWT_SECRET=$JWT_SECRET,GCP_PROJECT_ID=$PROJECT_ID,TZ=Asia/Jakarta" \
   --vpc-connector your-vpc-connector
 
 gcloud run deploy frontend-service \

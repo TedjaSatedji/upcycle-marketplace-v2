@@ -17,6 +17,7 @@ services:
       DB_PASS: upcycle_pass      # ganti sesuai setup-mysql.sh
       DB_NAME: upcycle_auth
       JWT_SECRET: dev_secret_ganti_di_production
+      TZ: Asia/Jakarta
 
   product-service:
     build: ./services/product-service
@@ -32,6 +33,7 @@ services:
       DB_NAME: upcycle_products
       JWT_SECRET: dev_secret_ganti_di_production
       GCP_PROJECT_ID: upcycle-marketplace-66a5a
+      TZ: Asia/Jakarta
 
   frontend:
     build: ./services/frontend
